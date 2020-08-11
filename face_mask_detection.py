@@ -13,26 +13,32 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import os
+from mtcnn.mtcnn import MTCNN
+import time
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"   #to force the tf model to load into CPU and not GPU    
 
 #%% read image
     
-def read_image(testing_folder, image_filename):
+def read_image(testing_folder, image_filename, w_pixels, h_pixels):
     image = cv2.imread(testing_folder + image_filename)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = cv2.resize(image, (w_pixels, h_pixels))
     return image   
             
 #%% detecting face using openCV
     
-def detect_face(image, minNeighbors):
-    # face_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_frontalface_default.xml')
-    face_cascade = cv2.CascadeClassifier('lbpcascades/lbpcascade_frontalface_improved.xml')
-    face_rects = face_cascade.detectMultiScale(image, minNeighbors = minNeighbors)
+def detect_face(image, face_detection_threshold):
+    detector = MTCNN()
+    faces = detector.detect_faces(image)
+    face_rects = []
+    for i in range(len(faces)):
+        if faces[i]['confidence'] > face_detection_threshold:
+            face_rects.append(faces[i]['box'])
     return face_rects
 
 #%% preprocessing detected face image
     
-def preprocess_face(face_image, n_pixels):
+def preprocess_face_image(face_image, n_pixels):
     face_image = face_image/255
     face_image = cv2.resize(face_image, dsize = (n_pixels, n_pixels), interpolation = cv2.INTER_CUBIC)
     face_image = np.reshape(face_image, (-1, n_pixels, n_pixels, 3))
@@ -64,18 +70,18 @@ def draw_on_image(result, image, x, y, w, h, font_scale, rectangle_thickness, fo
 
 #%% read video from disk
     
-def read_video(testing_folder, video_filename):
+def read_video(testing_folder, video_filename, w_pixels, h_pixels):
     cap = cv2.VideoCapture(testing_folder + video_filename)   
-    ret, image = cap.read()
-    writer = cv2.VideoWriter('myvideo7.mp4', cv2.VideoWriter_fourcc(*'DIVX'), 30, (image.shape[1], image.shape[0]))
+    writer = cv2.VideoWriter('myvideo7.mp4', cv2.VideoWriter_fourcc(*'DIVX'), 30,  (w_pixels, h_pixels))
     while cap.isOpened():
         ret, image = cap.read()
         if ret == True:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            face_rects = detect_face(image, minNeighbors)
+            image = cv2.resize(image, (w_pixels, h_pixels))
+            face_rects = detect_face(image, face_detection_threshold)
             my_model = mask_model()
             for (x,y,w,h) in face_rects: 
-                face_image = preprocess_face(image[y:y+h, x:x+w], n_pixels)  
+                face_image = preprocess_face_image(image[y:y+h, x:x+w], n_pixels)  
                 result = detect_mask(face_image, my_model)
                 image = draw_on_image(result, image, x, y, w, h, font_scale, rectangle_thickness, font_thickness)
             cv2.imshow('window', cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
@@ -92,15 +98,15 @@ def read_video(testing_folder, video_filename):
 
 #%% read video from webcam
     
-def webcam_video():
+def webcam_video(w_pixels, h_pixels):
     cap = cv2.VideoCapture(0)    
     while cap.isOpened():
         ret, image = cap.read()
         if ret == True:
-            face_rects = detect_face(frame, minNeighbors)
+            face_rects = detect_face(image, face_detection_threshold)
             my_model = mask_model()
             for (x,y,w,h) in face_rects: 
-                face_image = preprocess_face(image[y:y+h, x:x+w], n_pixels) 
+                face_image = preprocess_face_image(image[y:y+h, x:x+w], n_pixels) 
                 result = detect_mask(face_image, my_model)
                 image = draw_on_image(result, image, x, y, w, h, font_scale, rectangle_thickness, font_thickness)
             cv2.imshow('window', cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
@@ -116,11 +122,13 @@ def webcam_video():
 #%% main()
     
 if __name__ == '__main__':
-    minNeighbors = 10
-    font_scale = 2
-    font_thickness = 4
-    rectangle_thickness = 5
-    n_pixels = 200
+    font_scale = 1
+    font_thickness = 2
+    rectangle_thickness = 3
+    face_detection_threshold = 0.9
+    n_pixels = 200      # (pixels x pixels) of face image required to feed into CNN model
+    w_pixels = 1920      # horizontal pixels (width) that input image/ video frame will be resized to
+    h_pixels = 1080       # vertical pixels (height) that input image/ video frame will be resized to
     
     while True:
         try:
@@ -134,26 +142,25 @@ if __name__ == '__main__':
         else:
             print('selected choice is ' + str(choice))  
             break
-    
+           
     if choice == 1:
         testing_folder = 'final_testing/'
-        image_filename = 'v2.jpg'
-        image = read_image(testing_folder, image_filename)
-        face_rects = detect_face(image, minNeighbors)
+        image_filename = 'vindhya.jpg'
+        image = read_image(testing_folder, image_filename, w_pixels, h_pixels)
+        face_rects = detect_face(image, face_detection_threshold)
         my_model = mask_model()
         for (x,y,w,h) in face_rects: 
-            face_image = preprocess_face(image[y:y+h, x:x+w], n_pixels)  
+            face_image = preprocess_face_image(image[y:y+h, x:x+w], n_pixels)  
             result = detect_mask(face_image, my_model)
             image = draw_on_image(result, image, x, y, w, h, font_scale, rectangle_thickness, font_thickness)
-        cv2.imshow('window', cv2.resize(cv2.cvtColor(image, cv2.COLOR_RGB2BGR), (1366, 768)))
+        cv2.imshow('window', cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
         cv2.waitKey(-1)
         
     elif choice == 2:
         testing_folder = 'final_testing/'
         video_filename = 'video7.mp4'
-        read_video(testing_folder, video_filename)
+        read_video(testing_folder, video_filename, w_pixels, h_pixels)
         
     else:
-        webcam_video()
-        
+        webcam_video(w_pixels, h_pixels)    
     

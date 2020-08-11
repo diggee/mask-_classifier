@@ -179,7 +179,7 @@ def test_prediction(filename, model, n_pixels):
 #%% evalating the model on the test data and exporting it to csv file
 
 n_filters = 16
-n_pixels = 200
+n_pixels = 100
 # image_copy()
 model, history = neural_network('image_data/training/', 'image_data/validation/', n_filters, n_pixels)
 make_plots(history)
