@@ -1,3 +1,9 @@
+dependencies
+  - python 3.8
+  - tensorflow 2.3
+  - openCV 4.4
+  - MTCNN face detector (https://pypi.org/project/mtcnn/)
+
 face mask classifier that works on photos, videos and live video through webcam.
 
 faces are first detected through MTCNN and then the detected face is passed to the mask classifier model. 
