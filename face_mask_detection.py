@@ -126,7 +126,7 @@ if __name__ == '__main__':
     font_thickness = 2
     rectangle_thickness = 3
     face_detection_threshold = 0.9
-    n_pixels = 200      # (pixels x pixels) of face image required to feed into CNN model
+    n_pixels = 100      # (pixels x pixels) of face image required to feed into CNN model
     w_pixels = 1920      # horizontal pixels (width) that input image/ video frame will be resized to
     h_pixels = 1080       # vertical pixels (height) that input image/ video frame will be resized to
     
