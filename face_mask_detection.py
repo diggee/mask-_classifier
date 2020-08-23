@@ -25,7 +25,7 @@ def read_image(testing_folder, image_filename, w_pixels, h_pixels):
     image = cv2.resize(image, (w_pixels, h_pixels))
     return image   
             
-#%% detecting face using openCV
+#%% detecting face using MTCNN
     
 def detect_face(image, face_detection_threshold):
     detector = MTCNN()
